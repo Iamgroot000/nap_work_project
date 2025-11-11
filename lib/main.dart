@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:nap_work_project/coudinaryImageUpload/bloc/image_upload_bloc.dart';
 import 'package:nap_work_project/coudinaryImageUpload/bloc/image_upload_event.dart';
-import 'package:nap_work_project/coudinaryImageUpload/screens/mainHomeScreen.dart';
+import 'package:nap_work_project/coudinaryImageUpload/screens/main_home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

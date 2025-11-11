@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:nap_work_project/coudinaryImageUpload/bloc/image_upload_event.dart';
 import 'package:nap_work_project/coudinaryImageUpload/bloc/image_upload_state.dart';
-import 'package:nap_work_project/coudinaryImageUpload/services/cloudinaryImageUploadService.dart';
+import 'package:nap_work_project/coudinaryImageUpload/services/cloudinary_image_upload_service.dart';
 
 
 class UploadBloc extends Bloc<UploadEvent, UploadState> {
