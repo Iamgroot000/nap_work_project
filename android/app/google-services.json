@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "926988962493",
+    "project_id": "nap-project-60d31",
+    "storage_bucket": "nap-project-60d31.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:926988962493:android:2642c2db3b864111f4c5d4",
+        "android_client_info": {
+          "package_name": "com.example.nap_work_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmtyiIM2QK51pehTa4WOiyYpbWUHcNhDA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
