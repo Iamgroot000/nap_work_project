@@ -1,33 +1,38 @@
-part of 'image_upload_bloc.dart';
+import 'dart:io';
+import 'package:equatable/equatable.dart';
 
-@immutable
-sealed class ImageUploadState {}
+class UploadState extends Equatable {
+  final bool isLoading;
+  final String? errorMessage;
+  final File? selectedImage;
+  final List<Map<String, dynamic>> uploadedImages;
+  final bool uploadSuccess;
 
-final class ImageUploadInitial extends ImageUploadState {}
+  const UploadState({
+    this.isLoading = false,
+    this.errorMessage,
+    this.selectedImage,
+    this.uploadedImages = const [],
+    this.uploadSuccess = false,
+  });
 
-class ImageUploadLoading extends ImageUploadState {}
+  UploadState copyWith({
+    bool? isLoading,
+    String? errorMessage,
+    File? selectedImage,
+    List<Map<String, dynamic>>? uploadedImages,
+    bool? uploadSuccess,
+  }) {
+    return UploadState(
+      isLoading: isLoading ?? this.isLoading,
+      errorMessage: errorMessage,
+      selectedImage: selectedImage,
+      uploadedImages: uploadedImages ?? this.uploadedImages,
+      uploadSuccess: uploadSuccess ?? false,
+    );
+  }
 
-class ImageUploadSuccess extends ImageUploadState {
-  final String imageUrl;
-  final String referenceName;
-
-  ImageUploadSuccess(this.imageUrl, this.referenceName);
-}
-
-class ImageUploadFailure extends ImageUploadState {
-  final String error;
-
-  ImageUploadFailure(this.error);
-}
-
-class ImagePickedSuccess extends ImageUploadState {
-  final String imagePath;
-
-  ImagePickedSuccess(this.imagePath);
-}
-
-class ImagesLoaded extends ImageUploadState {
-  final List<ImageModel> images;
-
-  ImagesLoaded(this.images);
+  @override
+  List<Object?> get props =>
+      [isLoading, errorMessage, selectedImage, uploadedImages, uploadSuccess];
 }

@@ -1,25 +1,20 @@
-part of 'image_upload_bloc.dart';
+import 'dart:io';
+import 'package:equatable/equatable.dart';
 
-@immutable
-sealed class ImageUploadEvent {}
-
-class PickImage extends ImageUploadEvent {
-  final ImageSource source;
-
-  PickImage(this.source);
+abstract class UploadEvent extends Equatable {
+  @override
+  List<Object?> get props => [];
 }
 
-class UploadImage extends ImageUploadEvent {
-  final String imagePath;
+class PickImageFromGalleryEvent extends UploadEvent {}
+class PickImageFromCameraEvent extends UploadEvent {}
+
+class UploadImageEvent extends UploadEvent {
+  final File imageFile;
   final String referenceName;
-
-  UploadImage(this.imagePath, this.referenceName);
+  UploadImageEvent({required this.imageFile, required this.referenceName});
+  @override
+  List<Object?> get props => [imageFile, referenceName];
 }
 
-class DeleteImage extends ImageUploadEvent {
-  final String imageId;
-
-  DeleteImage(this.imageId);
-}
-
-class LoadImages extends ImageUploadEvent {}
+class FetchImagesEvent extends UploadEvent {}

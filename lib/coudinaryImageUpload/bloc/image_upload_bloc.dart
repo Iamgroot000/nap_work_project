@@ -1,70 +1,101 @@
+import 'dart:io';
 import 'package:bloc/bloc.dart';
-import 'package:meta/meta.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:nap_work_project/coudinaryImageUpload/models/image_model.dart';
+import 'package:nap_work_project/coudinaryImageUpload/bloc/image_upload_event.dart';
+import 'package:nap_work_project/coudinaryImageUpload/bloc/image_upload_state.dart';
 import 'package:nap_work_project/coudinaryImageUpload/services/cloudinaryImageUploadService.dart';
 
-part 'image_upload_event.dart';
-part 'image_upload_state.dart';
 
-class ImageUploadBloc extends Bloc<ImageUploadEvent, ImageUploadState> {
+class UploadBloc extends Bloc<UploadEvent, UploadState> {
   final ImagePicker _picker = ImagePicker();
-  final CloudinaryImageUploadService _cloudinaryService = CloudinaryImageUploadService();
+  final CloudinaryImageUploadService _cloudinary = CloudinaryImageUploadService();
 
-  ImageUploadBloc() : super(ImageUploadInitial()) {
-    on<PickImage>(_onPickImage);
-    on<UploadImage>(_onUploadImage);
-    on<DeleteImage>(_onDeleteImage);
-    on<LoadImages>(_onLoadImages);
+  UploadBloc() : super(const UploadState()) {
+    on<PickImageFromGalleryEvent>(_onPickGallery);
+    on<PickImageFromCameraEvent>(_onPickCamera);
+    on<UploadImageEvent>(_onUploadImage);
+    on<FetchImagesEvent>(_onFetchImages);
   }
 
-  Future<void> _onPickImage(PickImage event, Emitter<ImageUploadState> emit) async {
+  Future<void> _onPickGallery(
+      PickImageFromGalleryEvent event, Emitter<UploadState> emit) async {
+    emit(state.copyWith(isLoading: true));
     try {
-      final XFile? image = await _picker.pickImage(source: event.source);
-      if (image != null) {
-        emit(ImagePickedSuccess(image.path));
-      }
+      final XFile? picked = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      emit(state.copyWith(
+        isLoading: false,
+        selectedImage: picked != null ? File(picked.path) : null,
+      ));
     } catch (e) {
-      emit(ImageUploadFailure('Failed to pick image: $e'));
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
     }
   }
 
-  Future<void> _onUploadImage(UploadImage event, Emitter<ImageUploadState> emit) async {
-    emit(ImageUploadLoading());
+  Future<void> _onPickCamera(
+      PickImageFromCameraEvent event, Emitter<UploadState> emit) async {
+    emit(state.copyWith(isLoading: true));
     try {
-      final String? imageUrl = await _cloudinaryService.uploadImage(event.imagePath);
-      if (imageUrl != null) {
-        await _cloudinaryService.saveImageUrlToFirestore(
-            imageUrl, event.referenceName);
-        emit(ImageUploadSuccess(imageUrl, event.referenceName));
-        add(LoadImages()); // Reload images after successful upload
-      } else {
-        emit(ImageUploadFailure('Image upload to Cloudinary failed.'));
-      }
+      final XFile? photo = await _picker.pickImage(
+        source: ImageSource.camera,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality: 85,
+      );
+      emit(state.copyWith(
+        isLoading: false,
+        selectedImage: photo != null ? File(photo.path) : null,
+      ));
     } catch (e) {
-      emit(ImageUploadFailure('Error uploading image: $e'));
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
     }
   }
 
-  Future<void> _onDeleteImage(DeleteImage event, Emitter<ImageUploadState> emit) async {
-    emit(ImageUploadLoading());
+  Future<void> _onUploadImage(
+      UploadImageEvent event, Emitter<UploadState> emit) async {
+    emit(state.copyWith(isLoading: true, uploadSuccess: false));
     try {
-      await _cloudinaryService.deleteImageFromFirestore(event.imageId);
-      add(LoadImages()); // Reload images after successful deletion
+      final url = await _cloudinary.uploadImage(event.imageFile.path);
+      if (url == null) throw Exception("Upload failed");
+
+      await FirebaseFirestore.instance.collection("uploaded_images").add({
+        "referenceName": event.referenceName,
+        "imageUrl": url,
+        "uploadedAt": FieldValue.serverTimestamp(),
+      });
+
+      emit(state.copyWith(isLoading: false, uploadSuccess: true));
+      add(FetchImagesEvent());
     } catch (e) {
-      emit(ImageUploadFailure('Error deleting image: $e'));
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
     }
   }
 
-  Future<void> _onLoadImages(LoadImages event, Emitter<ImageUploadState> emit) async {
-    emit(ImageUploadLoading());
-    await emit.forEach(
-      _cloudinaryService.streamImagesFromFirestore(),
-      onData: (List<Map<String, dynamic>> data) {
-        final List<ImageModel> images = data.map((json) => ImageModel.fromJson(json, json['id'] as String)).toList();
-        return ImagesLoaded(images);
-      },
-      onError: (error, stacktrace) => ImageUploadFailure('Failed to load images: $error'),
-    );
+  Future<void> _onFetchImages(
+      FetchImagesEvent event, Emitter<UploadState> emit) async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection("uploaded_images")
+          .orderBy("uploadedAt", descending: true)
+          .get();
+
+      final List<Map<String, dynamic>> data = snapshot.docs.map((e) {
+        final d = e.data();
+        return {
+          "referenceName": d["referenceName"],
+          "imageUrl": d["imageUrl"],
+        };
+      }).toList();
+
+      emit(state.copyWith(uploadedImages: data, isLoading: false));
+    } catch (e) {
+      emit(state.copyWith(errorMessage: e.toString()));
+    }
   }
 }

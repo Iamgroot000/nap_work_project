@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:image/image.dart' as img;
 import 'package:nap_work_project/config/cloudinaryConfig.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CloudinaryImageUploadService {
   final CloudinaryPublic _cloudinary = CloudinaryPublic(
@@ -13,8 +12,6 @@ class CloudinaryImageUploadService {
     CloudinaryConfig.uploadPreset,
     cache: false,
   );
-
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   /// Compress and upload image to Cloudinary
   Future<String?> uploadImage(String imagePath) async {
@@ -117,56 +114,5 @@ class CloudinaryImageUploadService {
       }
     }
     return uploadedUrls;
-  }
-
-  /// Save image URL and reference name to Firestore
-  Future<void> saveImageUrlToFirestore(String url, String referenceName) async {
-    try {
-      await _firestore.collection('images').add({
-        'url': url,
-        'referenceName': referenceName,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-      debugPrint('Image URL and reference name saved to Firestore.');
-    } catch (e) {
-      debugPrint('Error saving image URL to Firestore: $e');
-    }
-  }
-
-  /// Get all images from Firestore
-  Future<List<Map<String, dynamic>>> getImagesFromFirestore() async {
-    try {
-      final QuerySnapshot snapshot =
-          await _firestore.collection('images').orderBy('timestamp', descending: true).get();
-      return snapshot.docs
-          .map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>})
-          .toList();
-    } catch (e) {
-      debugPrint('Error getting images from Firestore: $e');
-      return [];
-    }
-  }
-
-  /// Stream images from Firestore for real-time updates
-  Stream<List<Map<String, dynamic>>> streamImagesFromFirestore() {
-    return _firestore
-        .collection('images')
-        .orderBy('timestamp', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => {'id': doc.id, ...doc.data() as Map<String, dynamic>})
-              .toList(),
-        );
-  }
-
-  /// Delete image from Firestore
-  Future<void> deleteImageFromFirestore(String docId) async {
-    try {
-      await _firestore.collection('images').doc(docId).delete();
-      debugPrint('Image deleted from Firestore: $docId');
-    } catch (e) {
-      debugPrint('Error deleting image from Firestore: $e');
-    }
   }
 }
